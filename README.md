@@ -100,6 +100,19 @@ The dashboard API's origin check is controlled by `ECLIPSE_DASHBOARD_ORIGIN`. Da
 Keep this branch separate until syntax checks and a real test session are verified. Do not deploy solely because the dashboard page loads. Confirm the dashboard API key, CORS origin, session login, command handling, direct targeting, thread cooldown, and pause/resume behavior before merging.
 
 
+## ECLIPSE Test Bot controls
+
+The dashboard's Countdown, Mass SetNN, Auto-lock GC name, and MESS target settings are owner-managed. Enter the same `ECLIPSE_DASHBOARD_API_KEY` configured on the Render service in the dashboard key field. Dashboard origin allowlisting is an additional browser restriction, not a replacement for the owner key.
+
+Persistent feature configuration and countdown history use Neon PostgreSQL. The controls store uses `ECLIPSE_CONTROLS_DATABASE_URL` when supplied, then falls back to `ECLIPSE_LICENSE_DATABASE_URL` or `DATABASE_URL`. No extra database is required when the existing Neon connection is available.
+
+- **Countdown:** choose a group and a member by Messenger ID. The default inactivity period is five minutes, followed by 1–100 at two-second intervals. A message from the selected member during the count cancels the run and records a loss; a completed count records a win. Active state and history are persisted so a restart can resume safely.
+- **Mass SetNN:** select up to 50 current group members and apply one nickname. Membership is revalidated server-side and changes are serialized with a delay between writes.
+- **Auto-lock GC name:** save an expected title per group. Title-change events trigger repair, with a ten-minute reconciliation fallback and a bounded repair cooldown.
+- **MESS reactions:** select everyone, group admins, or one chosen member. Custom targets are scoped to the selected Messenger group and saved in Neon.
+
+The features are independent per `test-bot` namespace. They do not alter the main bot or its dashboard. Test these controls in a group where you have permission to change nicknames and group titles before relying on them.
+
 ## Raid Mode (Test Bot instance)
 
 Raid Mode is a dashboard-only persistent group-theme enforcer. It can enforce the selected group's title, one configured nickname across current members, and the configured group photo. It does not send Messenger activation or confirmation messages.
@@ -116,3 +129,9 @@ No Cloudflare R2, S3 bucket, object-storage credentials, or separate image servi
 Activation requires a saved theme, uploaded photo, selected groups, and explicit dashboard confirmation. Event-driven repairs listen for group title/photo, nickname, and membership/admin mutations. A 10-minute reconciliation loop provides a fallback; the image is re-applied at most every 30 minutes during periodic reconciliation. Failed repairs record dashboard-visible status and use bounded backoff, with longer waits for rate-limit responses. Emergency Stop disables enforcement for all groups in this Test Bot namespace.
 
 Before activation, verify Neon connectivity, dashboard API key authorization, Messenger session permissions, and a live test group.
+
+## Reply timing and Spam Mode
+
+The group dashboard's **Reply delay seconds** is an explicit minimum wait before an automatic Banat reply begins. Enter `5` for five seconds; the backend stores milliseconds and logs the scheduled delay. An empty value uses the humanized default. The send queue's separate per-group cooldown remains independent.
+
+**Spam Mode** is an owner-controlled dashboard action for one selected Messenger group. Enter the exact message to repeat and an interval (2–3600 seconds; default 6). Runs are unlimited and continue until manually stopped, a send fails, Messenger disconnects, the bot is paused, or license authorization is revoked. Only one run can be active per group. The first message is sent after the selected interval, and subsequent messages use the same interval. Runs do not resume automatically after a process restart.
