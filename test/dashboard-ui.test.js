@@ -55,19 +55,32 @@ test("activity center supports local search and event-type filtering",()=>{
   assert.ok(html.includes("function renderEvents()"));
   assert.ok(html.includes('addEventListener("input",renderEvents)'));
 });
+test("dashboard has selected-group Banat ON and OFF controls",()=>{
+  const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
+  for(const id of ["banatControlPanel","banatControlGroup","banatControlStatus","banatTurnOn","banatTurnOff","banatRefreshStatus","banatControlMessage"]) assert.ok(html.includes('id="'+id+'"'),"Banat control exists: "+id);
+  assert.match(html,/href="#banatControlPanel"/);
+  assert.ok(html.includes("async function setBanatControl(mode)"));
+  assert.ok(html.includes("/api/dashboard/settings/group"));
+  assert.match(html,/banatMode:mode/);
+  assert.match(html,/INHERIT · command controlled/);
+  assert.match(html,/does not pause the Messenger bot or disconnect its session/);
+});
+
 test("dashboard feature modules each occupy their own full-width row",()=>{
   const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
   assert.match(html,/main\.wrap > \.grid > \.card:not\(#overview\):not\(#runtimePanel\)\s*\{[^}]*grid-column:\s*1\s*\/\s*-1\s*!important/s);
   assert.match(html,/@media \(max-width: 850px\)[\s\S]*?main\.wrap > \.grid\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
 });
 
-test("dashboard exposes seconds-based reply delay and unlimited Spam Mode controls",()=>{
+test("dashboard exposes seconds-based reply delay and sequential Spam Mode list controls",()=>{
   const html=fs.readFileSync(path.join(__dirname,"..","dashboard.html"),"utf8");
   assert.match(html,/Reply delay seconds/);
   assert.match(html,/Number\(\$\("groupReplyDelay"\)\.value\)\*1000/);
   for(const id of ["spamMessage","spamInterval","spamStart","spamStop","spamRefresh","spamStatus"]) assert.ok(html.includes('id="'+id+'"'),"Spam Mode control exists: "+id);
   assert.match(html,/intervalSeconds<2/);
   assert.match(html,/min="2" max="3600"/);
-  assert.match(html,/unlimited Spam Mode/);
-  assert.doesNotMatch(html,/spamMaxMessages|maxMessages>100|It will send up to/);
+  assert.match(html,/numbered list/);
+  assert.match(html,/separate message/);
+  assert.match(html,/up to 1000/);
+  assert.doesNotMatch(html,/spamMaxMessages|maxMessages>100|unlimited Spam Mode/);
 });
